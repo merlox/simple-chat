@@ -1,0 +1,86 @@
+body{
+    font-family: sans-serif;
+}
+.messages-container{
+   height: 300px;
+   width: 250px;
+   border: none;
+   background-color: whitesmoke;
+   overflow-y: scroll;
+   overflow-x: hidden;
+}
+.messages-container ul{
+    list-style-type: none;
+    padding-left: 0;
+}
+.messages-container ul > li{
+    padding: 15px;
+    margin-bottom: 4px;
+}
+.message{
+    background-color: lightgreen;
+    margin-left: 15px;
+    border-radius: 7px 0 0 7px;
+}
+.other-message{
+    background-color: lightblue;
+    margin-right: 15px;
+    border-radius: 0 7px 7px 0;
+}
+.message small, .other-message small{
+    font-style: italic;
+}
+.messages-actions input[type=text]{
+    padding: 10px;
+    border: 1px solid lightgrey;
+}
+.messages-actions input[type=submit]{
+    cursor: pointer;
+    background-color: orange;
+    border: none;
+    padding: 11px 14px;
+}
+.messages-actions input[type=submit]:hover{
+    background-color: rgba(255,166,0,0.80);
+    cursor: pointer;
+}
+.messages-actions input[type=submit]:active{
+    background-color: rgba(255,166,0,0.70);
+}
+
+/* Users active */
+.users-active{
+    list-style-type: none;
+    padding-left: 0;
+    background-color: whitesmoke;
+    display: inline-block;
+    width: 250px;
+    text-align: center;
+}
+.users-active li{
+    padding: 10px;
+}
+.users-active li:nth-child(even){
+    background-color: lightgrey;
+}
+
+/* Header section */
+.users-active-container{
+    padding: 15px 0;
+}
+.link-buttons > a{
+    text-decoration: none;
+    background-color: rgba(255,166,0,0.5);
+    padding: 20px;
+    display: inline-block;
+    color: black;
+}
+.link-buttons > a:nth-child(even){
+    background-color: rgba(255,166,0,0.8);
+}
+.link-buttons > a:hover{
+    opacity: 0.8;
+}
+.hidden{
+   display: none;
+}
