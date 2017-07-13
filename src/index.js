@@ -7,7 +7,7 @@ import App from './components/App'
 import './index.css'
 import io from 'socket.io-client'
 
-const socket = io.connect('http://192.168.1.114:4000')
+const socket = io()
 
 class MyRouter extends React.Component{
    constructor(){
