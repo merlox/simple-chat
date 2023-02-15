@@ -1,33 +1,26 @@
-let path = require('path')
+const path = require('path')
 
 module.exports = {
+   mode: 'development',
    entry: path.join(__dirname, 'src/index.js'),
    output: {
+      filename: 'bundle.js',
       path: path.join(__dirname, 'dist'),
-      filename: 'app.bundle.js'
-   },
-   node: {
-      fs: 'empty',
-      net: 'empty'
-   },
-   devServer: {
-      contentBase: path.join(__dirname, 'dist'),
-      compress: true,
-      port: 8000,
-      stats: 'errors-only'
    },
    module: {
-      loaders: [
+      rules: [
          {
             test: /\.css$/,
-            loader: 'style-loader!css-loader'
+            use: ['style-loader', 'css-loader'],
          },
          {
             test: /\.js$/,
-            loader: 'babel-loader',
             exclude: /node_modules/,
-            query: {
-               presets: ['es2015', 'stage-2', 'react']
+            use: {
+              loader: 'babel-loader',
+              options: {
+                presets: [ '@babel/preset-env', '@babel/preset-react']
+              }
             }
          }
       ]
