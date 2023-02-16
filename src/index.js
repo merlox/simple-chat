@@ -48,6 +48,7 @@ const Main = () => {
    const [activeChatId, setActiveChatId] = useState(null)
    const [messages, setMessages] = useState([])
    const [adminChatIds, setAdminChatIds] = useState(null)
+   const [isChatCollapsed, setIsChatCollapsed] = useState(true)
 
    useEffect(() => {
       socket = io()
@@ -140,8 +141,14 @@ const Main = () => {
    }
 
    return (
-      <div className="chat-container">
-         <div className="chat-title">Real-time chat {activeChatId}</div>
+      <div className={isChatCollapsed ? 'chat-container' : 'chat-container uncollapsed'}>
+         <div className="chat-title" onClick={() => {
+            setIsChatCollapsed(!isChatCollapsed)
+         }}>
+            <img src="assets/up-arrow.png" className={isChatCollapsed ? 'chat-collapse' : 'chat-collapse open'} />
+            Real-time chat
+         </div>
+         <p className="chat-subtitle">{activeChatId}</p>
          <div className="chat-content">
 
             <div className="messages-container">
@@ -155,12 +162,10 @@ const Main = () => {
                   ) : null}
                </ul>
             </div>
-            <div className="messages-actions">
-               <form onSubmit={e => submitMessage(e)}>
-                  <input type="text" className="main-input-chat-text" />
-                  <input type="submit" value="Send" />
-               </form>
-            </div>
+            <form onSubmit={e => submitMessage(e)} className="messages-actions">
+               <input type="text" className="main-input-chat-text" placeholder="Type here..." />
+               <input type="submit" value="Send" className="submit-button" />
+            </form>
 
          </div>
       </div>

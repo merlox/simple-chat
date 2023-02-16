@@ -3,11 +3,10 @@ body{
 }
 .messages-container{
    height: 300px;
-   width: 250px;
-   border: none;
-   background-color: whitesmoke;
+   background-color: white;
    overflow-y: scroll;
    overflow-x: hidden;
+   border: 1px solid black;
 }
 .messages-container ul{
     list-style-type: none;
@@ -30,9 +29,14 @@ body{
 .message small, .other-message small{
     font-style: italic;
 }
+.messages-actions {
+    display: flex;
+    border: 1px solid black;
+    border-top: none;
+}
 .messages-actions input[type=text]{
     padding: 10px;
-    border: 1px solid lightgrey;
+    border: none;
 }
 .messages-actions input[type=submit]{
     cursor: pointer;
@@ -86,10 +90,25 @@ body{
 }
 
 .chat-container {
-
+    width: 250px;
+    max-height: 47px;
+    padding: 20px;
+    background-color: whitesmoke;
+    border: 1px solid black;
+    overflow: hidden;
+    transition: all 0.5s;
+    box-shadow: 6px 7px 0px 2px grey;
+}
+.chat-container.uncollapsed {
+    max-height: 400px;
 }
 .chat-title {
-
+    text-align: center;
+    cursor: pointer;
+    padding: 4px;
+}
+.chat-title:hover {
+    background-color: azure;
 }
 .admin-chat-ids li {
     cursor: pointer;
@@ -102,5 +121,23 @@ body{
     background-color: lightblue;
 }
 .main-input-chat-text {
-    width: 169px;
+    width: 100%;
+}
+.chat-subtitle {
+    color: darkgrey;
+    font-size: 9.5pt;
+    text-align: center;
+}
+.chat-collapse {
+    position: absolute;
+    transform: rotate(90deg);
+    font-size: 14pt;
+    border-radius: 50%;
+    width: 25px;
+    margin-top: -3px;
+    left: 30px;
+    transition: all 0.3s;
+}
+.chat-collapse.open {
+    transform: rotate(180deg);
 }

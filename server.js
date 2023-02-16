@@ -15,6 +15,7 @@ const port = 8002
 let db = null
 
 app.use(express.static(path.join(__dirname, 'dist')))
+app.use('/assets', express.static(path.join(__dirname, 'assets')))
 app.use('*', (req, res, next) => {
 	// Logger
 	let time = new Date()
@@ -46,7 +47,6 @@ io.on('connection', socket => {
       console.log('EXISTING CHAT', socket.id)
       // Join the room data.chatId so the admin can come later
       socket.join(data.chatId)
-      addChatSession(data.chatId, socket.id, data.adminCode)
       // Try to get the existing conversation for that chat and send the entire data
       try {
          const results = await db.all('SELECT * FROM chats WHERE chatId = ?', data.chatId)
@@ -65,7 +65,6 @@ io.on('connection', socket => {
       console.log('NEW CHAT', socket.id)
       const newChatId = uuid()
       socket.join(newChatId)
-      addChatSession(newChatId, socket.id, data.adminCode)
       try {
          await db.run('INSERT INTO chats VALUES (?, ?)', [
             newChatId, JSON.stringify([]),
@@ -158,7 +157,6 @@ io.on('connection', socket => {
 
    socket.on('disconnect', () => {
       console.log('Disconnected', socket.id)
-      removeActiveChatSession(socket.id)
    })
 })
 
