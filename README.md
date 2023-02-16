@@ -348,3 +348,29 @@ try {
 User connectes on the frontend. Conversation starts, the chat Id is saved locally in localStorage.
 
 When user comes back, the localStorage chat Id is sent to the io connection emit event and chat resumes.
+
+## Interacting as an admin
+All conversations are between a user and the admin. In order to be the admin you must open the chat and type:
+
+/admin <your-admin-code>
+
+While replacing <your-admin-code> with the actual code stored in the server environment.
+
+## Receiving messages
+In order to receive messages as an admin and the other person talking, the server will keep an array of objects containing active chats, connected users with their chatIds and socket IDs.
+
+Since the socket id will be used to send messages to the admin or admins in case there are multiple admins connected.
+
+It will be an array of objects like these:
+
+{
+   socketId: '',
+   chatId: '',
+   isAdmin: bool,
+}
+
+When someone connects, they emit a separate event from the usual connection and that is used to identify chatid and socket id plus whether they are admin or not.
+
+Both NEW_CHAT and EXISTING_CHAT are used to update this array.
+
+When a disconnect even is detected, we find and remove that element from the list of active chatters.

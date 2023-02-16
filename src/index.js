@@ -1,14 +1,50 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-// import {BrowserRouter, Route} from 'react-router-dom'
-// import AddUser from './components/AddUser'
-// import Chat from './components/Chat'
-// import App from './components/App'
 import './index.css'
 import io from 'socket.io-client'
 let socket = null
 
+const Message = props => {
+   let className = props.isYours ? 'message ' : 'other-message '
+   // className += props.sending ? 'message-sending' : ''
+
+   return (
+      <li className={className}>
+         {props.content}
+      </li>
+   )
+}
+
+const MessagesView = ({ scrollChatToBottom, messages }) => {
+   useEffect(() => {
+      scrollChatToBottom()
+   }, [])
+
+   const isAdmin = localStorage.getItem('waterloo-is-admin').toLowerCase() === 'true'
+   let formattedMessages = !messages || messages.length == 0 ? [] : messages.map((msg, index) => {
+      const isYours = msg.isAdmin && isAdmin ? true : (
+         !msg.isAdmin && !isAdmin
+      )
+      return <Message
+         key={index}
+         isYours={isYours}
+         from={isAdmin && msg.isAdmin ? 'yourself' : 'support'}
+         content={msg.message}
+      />
+   })
+
+   return(
+      <ul>
+         { formattedMessages }
+      </ul>
+   )
+}
+
 const Main = () => {
+   const [activeChatId, setActiveChatIds] = useState()
+   const [messages, setMessages] = useState()
+   const [adminChatIds, setAdminChatIds] = useState(null)
+
    useEffect(() => {
       socket = io()
       setSocketListeners()
@@ -21,131 +57,95 @@ const Main = () => {
       })
       // If there's a conversation already, receive the messages and re-create them
       socket.on('EXISTING_CHAT_DATA', data => {
-         console.log('data', data)
+         const messages = JSON.parse(data.messages)
+         setActiveChatIds(data.chatId)
+         setMessages(messages)
+      })
+      // After sending the /admin <code> command successfully you'll save the admin code and see the chats to start conversations with
+      socket.on('ADMIN_CHAT_IDS', data => {
+         localStorage.setItem('waterloo-admin-code', data.adminCode)
+         localStorage.setItem('waterloo-is-admin', true)
+         setAdminChatIds(data.chatIds)
+      })
+      socket.on('RECEIVE_ADMIN_CHAT', data => {
+         // Format messages and show myself as admin
+         setAdminChatIds(null)
+         setMessages(data.messages)
+      })
+      socket.on('RECEIVE_MESSAGE', data => {
+         // TODO this
       })
    }
 
    const loadExistingSessionIfAny = () => {
       const chatId = localStorage.getItem('waterloo-chat-session')
+      const adminCode = localStorage.getItem('waterloo-admin-code')
       if (chatId && chatId.length > 0) {
-         socket.emit('EXISTING_CHAT', { chatId })
+         socket.emit('EXISTING_CHAT', { chatId, adminCode })
       } else {
          socket.emit('NEW_CHAT')
       }
    }
 
+   const scrollChatToBottom = () => {
+      let divContainer = document.querySelector('.messages-container')
+      divContainer.scrollTop = divContainer.scrollHeight
+   }
+
+   const submitMessage = e => {
+      e.preventDefault()
+      const chatMessage = e.target[0].value.trim()
+      e.target[0].value = ''
+      if (!chatMessage || chatMessage.length == 0) return
+      if (chatMessage.trim().toLowerCase().startsWith('/admin')) {
+         const adminCode = chatMessage.trim().toLowerCase().split('/admin')[1].trim()
+         return socket.emit('GET_ADMIN_CHAT_IDS', { adminCode })
+      }
+      socket.emit('MESSAGE', {
+         adminCode: localStorage.getItem('waterloo-admin-code'),
+         message: chatMessage,
+         timestamp: Date.now(),
+         chatId: localStorage.getItem('waterloo-chat-session'),
+         // The chat ID is already setup either from existing sessions
+         // or from a new chat session setup initially
+      })
+   }
+
+   const joinAdminChat = chatId => {
+      // Get all the chats from that conversation and set myself as admin
+      socket.emit('GET_CONVERSATION_AS_ADMIN', {
+         adminCode: localStorage.getItem('waterloo-admin-code'),
+         chatId,
+      })
+   }
+
    return (
       <div className="chat-container">
-         <div className="chat-title">Real-time chat</div>
-         <div className="chat-content"></div>
+         <div className="chat-title">Real-time chat {activeChatId}</div>
+         <div className="chat-content">
+
+            <div className="messages-container">
+               <MessagesView
+                  scrollChatToBottom={() => scrollChatToBottom()}
+                  messages={messages}
+               />
+               <ul className="admin-chat-ids">
+                  {adminChatIds ? adminChatIds.map(chatId => 
+                     <li key={chatId} onClick={() => joinAdminChat(chatId)}>{chatId}</li>
+                  ) : null}
+               </ul>
+            </div>
+            <div className="messages-actions">
+               <form onSubmit={e => submitMessage(e)}>
+                  <input type="text" className="main-input-chat-text" />
+                  <input type="submit" value="Send" />
+               </form>
+            </div>
+
+         </div>
       </div>
    )
 }
-
-// class MyRouter extends React.Component{
-//    constructor(){
-//       super()
-//       this.state = {
-//          user: 'Owner',
-//          loggedIn: false,
-//          usersActive: [],
-//          messages: [],
-//       }
-
-//    }
-
-//    componentDidMount(){
-//       this.recoverState(done => {
-//          socket.emit('NEW_USER', {user: this.state.user})
-//       })
-
-//       socket.on('USERS_ACTIVE', usersActive => {
-//          this.setState({
-//             usersActive,
-//          })
-//       })
-//       socket.on('MESSAGES', messages => {
-//          this.setState({
-//             messages,
-//          })
-//       })
-//    }
-
-//    addUser(user){
-//       let oldName = this.state.user
-//       this.setState({
-//          user,
-//          loggedIn: true
-//       }, () => {
-//          localStorage.setItem('user', user)
-//          localStorage.setItem('logged', true)
-//          socket.emit('UPDATE_USER', {
-//             oldName,
-//             newName: user,
-//          })
-//       })
-//    }
-
-//    changeLogged(){
-//       this.setState({
-//          loggedIn: false
-//       }, () => {
-//          localStorage.setItem('logged', false)
-//       })
-//    }
-
-//    handleMessages(messages){
-//       this.setState({
-//          messages,
-//       }, () => {
-//          let msgs = messages.slice()
-//          msgs = msgs.splice(-1, 1)[0]
-
-//          socket.emit('MESSAGE', msgs)
-
-//          this.scrollChatToBottom()
-//       })
-//    }
-
-//    scrollChatToBottom(){
-//       let divContainer = document.querySelector('.messages-container')
-//       divContainer.scrollTop = divContainer.scrollHeight
-//    }
-
-//    recoverState(cb){
-//       if('user' in localStorage)
-//          this.setState({
-//             user: localStorage.user,
-//             loggedIn: true,
-//          }, () => {
-//             cb()
-//          })
-//    }
-
-//    render(){
-//       return(
-//          <BrowserRouter>
-//             <App {...this.state}>
-//                <Route path="/user" render={() => (
-//                   <AddUser
-//                      addUser={this.addUser.bind(this)}
-//                      loggedIn={this.state.loggedIn}
-//                      user={this.state.user}
-//                      changeLogged={this.changeLogged.bind(this)}
-//                   />
-//                )} />
-//                <Route path="/chat" render={() => (
-//                   <Chat
-//                      {...this.state}
-//                      handleMessages={this.handleMessages.bind(this)}
-//                      scrollChatToBottom={this.scrollChatToBottom.bind(this)}
-//                   />
-//                )} />
-//             </App>
-//          </BrowserRouter>
-//       )
-//    }
-// }
 
 const container = document.querySelector('#root')
 const root = createRoot(container)

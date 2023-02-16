@@ -86,8 +86,21 @@ body{
 }
 
 .chat-container {
-    
+
 }
 .chat-title {
 
+}
+.admin-chat-ids li {
+    cursor: pointer;
+    background-color: lightskyblue;
+}
+.admin-chat-ids li:hover {
+    opacity: 0.6;
+}
+.admin-chat-ids li:nth-child(odd) {
+    background-color: lightblue;
+}
+.main-input-chat-text {
+    width: 169px;
 }
