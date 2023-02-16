@@ -13,7 +13,6 @@ const { ADMIN_CODE } = process.env
 
 const port = 8002
 let db = null
-let activeChatSessions = []
 
 app.use(express.static(path.join(__dirname, 'dist')))
 app.use('*', (req, res, next) => {
@@ -21,9 +20,6 @@ app.use('*', (req, res, next) => {
 	let time = new Date()
 	console.log(`${req.method} from ${req.ip} to ${req.originalUrl} at ${time.getHours()}:${time.getMinutes()}:${time.getSeconds()}`)
 	next()
-})
-app.get('/active-chats', (req, res) => {
-   res.json({activeChatSessions})
 })
 
 const start = async () => {
@@ -40,21 +36,6 @@ const start = async () => {
    } catch (e) {
       return console.log(e)
    }
-}
-
-const addChatSession = (chatId, socketId, adminCode) => {
-   const isAdmin = ADMIN_CODE == adminCode
-   activeChatSessions.push({
-      chatId,
-      socketId,
-      isAdmin,
-      startedSession: Date.now(),
-   })
-}
-
-const removeActiveChatSession = socketId => {
-   // Removes the socket id chat session
-   activeChatSessions = activeChatSessions.filter(item => item.socketId != socketId)
 }
 
 io.on('connection', socket => {
@@ -108,7 +89,7 @@ io.on('connection', socket => {
          message: data.message,
          timestamp: data.timestamp,
       }
-      console.log('MESSAGE', newMessage, socket.id)
+      console.log('MESSAGE by', socket.id)
       let existingMessages = []
       try {
          const results = await db.all('SELECT messages FROM chats WHERE chatId = ?', data.chatId)
@@ -128,7 +109,6 @@ io.on('connection', socket => {
          [
             JSON.stringify(existingMessages), data.chatId,
          ])
-         console.log('saving', saving)
       } catch (e) {
          console.log('Error saving message', e)
          return
@@ -160,8 +140,6 @@ io.on('connection', socket => {
    socket.on('JOIN_ROOM_AS_ADMIN', async data => {
       console.log('JOIN_ROOM_AS_ADMIN', socket.id)
       if (ADMIN_CODE != data.adminCode) return console.log('Invalid admin code')
-      let messages = []
-
       try {
          const results = await db.all('SELECT messages FROM chats WHERE chatId=?', [
             data.chatId,
