@@ -20,7 +20,11 @@ const MessagesView = ({ scrollChatToBottom, messages }) => {
       scrollChatToBottom()
    }, [])
 
-   const isAdmin = localStorage.getItem('waterloo-is-admin').toLowerCase() === 'true'
+   const adminCode = localStorage.getItem('waterloo-is-admin')
+   const isAdmin = adminCode && adminCode.length > 0 
+      ? localStorage.getItem('waterloo-is-admin').toLowerCase() === 'true'
+      : false
+
    let formattedMessages = !messages || messages.length == 0 ? [] : messages.map((msg, index) => {
       const isYours = msg.isAdmin && isAdmin ? true : (
          !msg.isAdmin && !isAdmin
@@ -41,7 +45,7 @@ const MessagesView = ({ scrollChatToBottom, messages }) => {
 }
 
 const Main = () => {
-   const [activeChatId, setActiveChatIds] = useState()
+   const [activeChatId, setActiveChatId] = useState()
    const [messages, setMessages] = useState()
    const [adminChatIds, setAdminChatIds] = useState(null)
 
@@ -54,11 +58,12 @@ const Main = () => {
    const setSocketListeners = () => {
       socket.on('NEW_CHAT_ID', data => {
          localStorage.setItem('waterloo-chat-session', data.newChatId)
+         setActiveChatId(data.newChatId)
       })
       // If there's a conversation already, receive the messages and re-create them
       socket.on('EXISTING_CHAT_DATA', data => {
          const messages = JSON.parse(data.messages)
-         setActiveChatIds(data.chatId)
+         setActiveChatId(data.chatId)
          setMessages(messages)
       })
       // After sending the /admin <code> command successfully you'll save the admin code and see the chats to start conversations with
@@ -69,6 +74,7 @@ const Main = () => {
       })
       socket.on('RECEIVE_ADMIN_CHAT', data => {
          // Format messages and show myself as admin
+         setActiveChatId(data.chatId)
          setAdminChatIds(null)
          setMessages(data.messages)
       })
@@ -77,6 +83,7 @@ const Main = () => {
       })
    }
 
+   // You don't know the chatId when connected first until you 
    const loadExistingSessionIfAny = () => {
       const chatId = localStorage.getItem('waterloo-chat-session')
       const adminCode = localStorage.getItem('waterloo-admin-code')
@@ -97,15 +104,17 @@ const Main = () => {
       const chatMessage = e.target[0].value.trim()
       e.target[0].value = ''
       if (!chatMessage || chatMessage.length == 0) return
+      // Show admin mode
       if (chatMessage.trim().toLowerCase().startsWith('/admin')) {
          const adminCode = chatMessage.trim().toLowerCase().split('/admin')[1].trim()
+         setMessages(null)
          return socket.emit('GET_ADMIN_CHAT_IDS', { adminCode })
       }
       socket.emit('MESSAGE', {
          adminCode: localStorage.getItem('waterloo-admin-code'),
          message: chatMessage,
          timestamp: Date.now(),
-         chatId: localStorage.getItem('waterloo-chat-session'),
+         chatId: activeChatId,
          // The chat ID is already setup either from existing sessions
          // or from a new chat session setup initially
       })

@@ -136,7 +136,6 @@ io.on('connection', socket => {
       console.log('Valid admin code')
       try {
          const results = await db.all('SELECT chatId FROM chats')
-         console.log('Chat ids', results)
          if (results && results.length > 0) {
             const chatIds = results.map(c => c.chatId)
             socket.emit('ADMIN_CHAT_IDS', {
@@ -162,7 +161,7 @@ io.on('connection', socket => {
          if (results && results.length > 0) {
             // Messages is an array of messages
             const messages = JSON.parse(results[0].messages)
-            socket.emit('RECEIVE_ADMIN_CHAT', { messages })
+            socket.emit('RECEIVE_ADMIN_CHAT', { messages, chatId: data.chatId })
          }
       } catch (e) {
          // If error do nothing, the new chat starts
