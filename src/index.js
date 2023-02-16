@@ -45,8 +45,8 @@ const MessagesView = ({ scrollChatToBottom, messages }) => {
 }
 
 const Main = () => {
-   const [activeChatId, setActiveChatId] = useState()
-   const [messages, setMessages] = useState()
+   const [activeChatId, setActiveChatId] = useState(null)
+   const [messages, setMessages] = useState([])
    const [adminChatIds, setAdminChatIds] = useState(null)
 
    useEffect(() => {
@@ -54,6 +54,11 @@ const Main = () => {
       setSocketListeners()
       loadExistingSessionIfAny()
    }, [])
+   useEffect(() => {
+      scrollChatToBottom()
+   }, [messages])
+
+   window.messages = messages
 
    const setSocketListeners = () => {
       socket.on('NEW_CHAT_ID', data => {
@@ -72,6 +77,7 @@ const Main = () => {
          localStorage.setItem('waterloo-is-admin', true)
          setAdminChatIds(data.chatIds)
       })
+      // Gets the conversation for a specified chat id (only the admin can do this)
       socket.on('RECEIVE_ADMIN_CHAT', data => {
          // Format messages and show myself as admin
          setActiveChatId(data.chatId)
@@ -79,7 +85,12 @@ const Main = () => {
          setMessages(data.messages)
       })
       socket.on('RECEIVE_MESSAGE', data => {
-         // TODO this
+         // You must use the set state with the callback otherwise messages is undefined
+         setMessages(msgs => {
+            const messagesCopy = msgs.slice(0)
+            messagesCopy.push(data.newMessage)
+            return messagesCopy
+         })
       })
    }
 
@@ -90,7 +101,7 @@ const Main = () => {
       if (chatId && chatId.length > 0) {
          socket.emit('EXISTING_CHAT', { chatId, adminCode })
       } else {
-         socket.emit('NEW_CHAT')
+         socket.emit('NEW_CHAT', { adminCode })
       }
    }
 
@@ -122,7 +133,7 @@ const Main = () => {
 
    const joinAdminChat = chatId => {
       // Get all the chats from that conversation and set myself as admin
-      socket.emit('GET_CONVERSATION_AS_ADMIN', {
+      socket.emit('JOIN_ROOM_AS_ADMIN', {
          adminCode: localStorage.getItem('waterloo-admin-code'),
          chatId,
       })

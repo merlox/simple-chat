@@ -63,6 +63,8 @@ io.on('connection', socket => {
    // Its purpose is to send the existing conversation data to the frontend
    socket.on('EXISTING_CHAT', async data => {
       console.log('EXISTING CHAT', socket.id)
+      // Join the room data.chatId so the admin can come later
+      socket.join(data.chatId)
       addChatSession(data.chatId, socket.id, data.adminCode)
       // Try to get the existing conversation for that chat and send the entire data
       try {
@@ -78,9 +80,10 @@ io.on('connection', socket => {
    })
 
    // Its purpose is to create a new chat id and store it in the frontend to retrieve the existing conversation in the future
-   socket.on('NEW_CHAT', async () => {
+   socket.on('NEW_CHAT', async data => {
       console.log('NEW CHAT', socket.id)
       const newChatId = uuid()
+      socket.join(newChatId)
       addChatSession(newChatId, socket.id, data.adminCode)
       try {
          await db.run('INSERT INTO chats VALUES (?, ?)', [
@@ -98,6 +101,7 @@ io.on('connection', socket => {
       Each message is made of these fields { isAdmin, timestamp, message}
       the isAdmin is determined from the `data.adminCode` sent on each message
    */
+   // TODO emit the new message to both rooms with io.to(room).emit
    socket.on('MESSAGE', async data => {
       const newMessage = {
          isAdmin: ADMIN_CODE == data.adminCode,
@@ -115,6 +119,7 @@ io.on('connection', socket => {
          console.log('Error getting messages', e)
          return
       }
+      // Updated messages here
       existingMessages.push(newMessage)
       try {
          const saving = await db.run(`UPDATE chats
@@ -128,6 +133,8 @@ io.on('connection', socket => {
          console.log('Error saving message', e)
          return
       }
+      // Send messages to both user and admin
+      io.to(data.chatId).emit('RECEIVE_MESSAGE', { newMessage })
    })
 
    socket.on('GET_ADMIN_CHAT_IDS', async data => {
@@ -149,8 +156,9 @@ io.on('connection', socket => {
       } 
    })
 
-   socket.on('GET_CONVERSATION_AS_ADMIN', async data => {
-      console.log('GET_CONVERSATION_AS_ADMIN', socket.id)
+   // Joins the socket room as the admin and sends the chat data to the admin
+   socket.on('JOIN_ROOM_AS_ADMIN', async data => {
+      console.log('JOIN_ROOM_AS_ADMIN', socket.id)
       if (ADMIN_CODE != data.adminCode) return console.log('Invalid admin code')
       let messages = []
 
@@ -161,6 +169,7 @@ io.on('connection', socket => {
          if (results && results.length > 0) {
             // Messages is an array of messages
             const messages = JSON.parse(results[0].messages)
+            socket.join(data.chatId)
             socket.emit('RECEIVE_ADMIN_CHAT', { messages, chatId: data.chatId })
          }
       } catch (e) {
