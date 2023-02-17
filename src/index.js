@@ -152,10 +152,14 @@ const Main = () => {
          <div className="chat-content">
 
             <div className="messages-container">
-               <MessagesView
-                  scrollChatToBottom={() => scrollChatToBottom()}
-                  messages={messages}
-               />
+               {messages.length == 0 ? (
+                  <p className="no-messages-title">Start the conversation by typing something below...</p>
+               ) : (
+                  <MessagesView
+                     scrollChatToBottom={() => scrollChatToBottom()}
+                     messages={messages}
+                  />
+               )}
                <ul className="admin-chat-ids">
                   {adminChatIds ? adminChatIds.map(chatId => 
                      <li key={chatId} onClick={() => joinAdminChat(chatId)}>{chatId}</li>

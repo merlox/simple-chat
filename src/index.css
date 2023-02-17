@@ -141,3 +141,7 @@ body{
 .chat-collapse.open {
     transform: rotate(180deg);
 }
+.no-messages-title {
+    text-align: center;
+    color: lightgrey;
+}
