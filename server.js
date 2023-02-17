@@ -6,13 +6,19 @@ import { Server } from 'socket.io'
 import sqlite3 from 'sqlite3'
 import { open } from 'sqlite'
 import { v4 as uuid } from 'uuid'
+const sendEmail = require('./sendEmail')
 const app = express()
 const server = http.createServer(app)
 const io = new Server(server)
-const { ADMIN_CODE } = process.env
+const { ADMIN_CODE, NOTIFICATION_EMAIL_RECEIVER } = process.env
 
 const port = 8002
 let db = null
+const notificationDelay = 60 * 1e3 // 60 seconds in ms
+let notificationEmailReceivers = {}
+/*
+   It contains a list of notificationEmailReceivers[socketId] = timestamp where the timestamp is used to check when the notification was sent. If it was sent 1 min ago then it can be sent again to prevent spam. So it's 1 minute delay per conversation
+*/
 
 app.use(express.static(path.join(__dirname, 'dist')))
 app.use('/assets', express.static(path.join(__dirname, 'assets')))
@@ -88,7 +94,7 @@ io.on('connection', socket => {
          message: data.message,
          timestamp: data.timestamp,
       }
-      console.log('MESSAGE by', socket.id)
+      console.log('MESSAGE by', socket.id, 'on', data.chatId)
       let existingMessages = []
       try {
          const results = await db.all('SELECT messages FROM chats WHERE chatId = ?', data.chatId)
@@ -102,7 +108,7 @@ io.on('connection', socket => {
       // Updated messages here
       existingMessages.push(newMessage)
       try {
-         const saving = await db.run(`UPDATE chats
+         await db.run(`UPDATE chats
             SET messages=?
             WHERE chatId=?`,
          [
@@ -114,6 +120,22 @@ io.on('connection', socket => {
       }
       // Send messages to both user and admin
       io.to(data.chatId).emit('RECEIVE_MESSAGE', { newMessage })
+
+
+      const date = new Date()
+      const minute = date.getMinutes()
+      const hour = date.getHours()
+      const now = Date.now()
+      const shortDate = date.toLocaleDateString()
+      const lastTimeSent = notificationEmailReceivers[socket.id] || 0
+      if (now < lastTimeSent + notificationDelay) return
+
+      notificationEmailReceivers[socket.id] = now
+      try {
+         await sendEmail(NOTIFICATION_EMAIL_RECEIVER, `New message from ${data.chatId}`, `New message from ${data.chatId} at ${shortDate} ${hour}:${minute} with content ${data.message}`)
+      } catch (e) {
+         console.log('Error sending notification email', e)
+      }
    })
 
    socket.on('GET_ADMIN_CHAT_IDS', async data => {
