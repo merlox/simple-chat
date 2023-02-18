@@ -29,8 +29,9 @@
     "webpack-cli": "^5.0.1"
   },
   "scripts": {
-    "watch": "webpack --watch",
-    "prod": "webpack -p",
+    "watch": "webpack --mode development --watch",
+    "prod": "webpack --mode production",
+    "serve": "node start-server.js",
     "server": "npx nodemon start-server.js",
     "start": "npm-run-all --parallel watch server"
   }
