@@ -98,6 +98,8 @@ body{
     overflow: hidden;
     transition: all 0.5s;
     box-shadow: 6px 7px 0px 2px grey;
+    position: absolute;
+    bottom: 9px;
 }
 .chat-container.uncollapsed {
     max-height: 400px;
