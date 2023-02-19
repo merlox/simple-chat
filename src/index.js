@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import io from 'socket.io-client'
 let socket = null
+let isAdmin = false
+let adminCode = null
 
 const Message = props => {
    let className = props.isYours ? 'message ' : 'other-message '
@@ -19,11 +21,6 @@ const MessagesView = ({ scrollChatToBottom, messages }) => {
    useEffect(() => {
       scrollChatToBottom()
    }, [])
-
-   const adminCode = localStorage.getItem('waterloo-is-admin')
-   const isAdmin = adminCode && adminCode.length > 0 
-      ? localStorage.getItem('waterloo-is-admin').toLowerCase() === 'true'
-      : false
 
    let formattedMessages = !messages || messages.length == 0 ? [] : messages.map((msg, index) => {
       const isYours = msg.isAdmin && isAdmin ? true : (
@@ -49,6 +46,7 @@ const Main = () => {
    const [messages, setMessages] = useState([])
    const [adminChatIds, setAdminChatIds] = useState(null)
    const [isChatCollapsed, setIsChatCollapsed] = useState(true)
+   const [tempAdminMode, setTempAdminMode] = useState(false)
 
    useEffect(() => {
       socket = io()
@@ -74,8 +72,9 @@ const Main = () => {
       })
       // After sending the /admin <code> command successfully you'll save the admin code and see the chats to start conversations with
       socket.on('ADMIN_CHAT_IDS', data => {
-         localStorage.setItem('waterloo-admin-code', data.adminCode)
-         localStorage.setItem('waterloo-is-admin', true)
+         adminCode = data.adminCode
+         isAdmin = true
+         setTempAdminMode(true)
          setAdminChatIds(data.chatIds)
       })
       // Gets the conversation for a specified chat id (only the admin can do this)
@@ -98,11 +97,10 @@ const Main = () => {
    // You don't know the chatId when connected first until you 
    const loadExistingSessionIfAny = () => {
       const chatId = localStorage.getItem('waterloo-chat-session')
-      const adminCode = localStorage.getItem('waterloo-admin-code')
       if (chatId && chatId.length > 0) {
-         socket.emit('EXISTING_CHAT', { chatId, adminCode })
+         socket.emit('EXISTING_CHAT', { chatId })
       } else {
-         socket.emit('NEW_CHAT', { adminCode })
+         socket.emit('NEW_CHAT')
       }
    }
 
@@ -119,11 +117,11 @@ const Main = () => {
       // Show admin mode
       if (chatMessage.trim().toLowerCase().startsWith('/admin')) {
          const adminCode = chatMessage.trim().toLowerCase().split('/admin')[1].trim()
-         setMessages(null)
+         setMessages([])
          return socket.emit('GET_ADMIN_CHAT_IDS', { adminCode })
       }
       socket.emit('MESSAGE', {
-         adminCode: localStorage.getItem('waterloo-admin-code'),
+         adminCode,
          message: chatMessage,
          timestamp: Date.now(),
          chatId: activeChatId,
@@ -135,7 +133,7 @@ const Main = () => {
    const joinAdminChat = chatId => {
       // Get all the chats from that conversation and set myself as admin
       socket.emit('JOIN_ROOM_AS_ADMIN', {
-         adminCode: localStorage.getItem('waterloo-admin-code'),
+         adminCode,
          chatId,
       })
    }
@@ -144,6 +142,9 @@ const Main = () => {
       <div className={isChatCollapsed ? 'chat-container' : 'chat-container uncollapsed'}>
          <div className="chat-title" onClick={() => {
             setIsChatCollapsed(!isChatCollapsed)
+            // To be used for iframe integrations as a child component
+            console.log('Posting message...')
+            window.parent.postMessage('toggle-collapse', '*')
          }}>
             <img src="assets/up-arrow.png" className={isChatCollapsed ? 'chat-collapse' : 'chat-collapse open'} />
             Real-time chat
@@ -152,17 +153,22 @@ const Main = () => {
          <div className="chat-content">
 
             <div className="messages-container">
-               {messages.length == 0 ? (
-                  <p className="no-messages-title">Start the conversation by typing something below...</p>
-               ) : (
-                  <MessagesView
-                     scrollChatToBottom={() => scrollChatToBottom()}
-                     messages={messages}
-                  />
-               )}
+               {tempAdminMode ? null : 
+                  (messages.length == 0 ? (
+                     <p className="no-messages-title">Start the conversation by typing something below...</p>
+                  ) : (
+                     <MessagesView
+                        scrollChatToBottom={() => scrollChatToBottom()}
+                        messages={messages}
+                     />
+                  ))
+               }
                <ul className="admin-chat-ids">
                   {adminChatIds ? adminChatIds.map(chatId => 
-                     <li key={chatId} onClick={() => joinAdminChat(chatId)}>{chatId}</li>
+                     <li key={chatId} onClick={() => {
+                        setTempAdminMode(false)
+                        joinAdminChat(chatId)
+                     }}>{chatId}</li>
                   ) : null}
                </ul>
             </div>

@@ -67,7 +67,7 @@ io.on('connection', socket => {
    })
 
    // Its purpose is to create a new chat id and store it in the frontend to retrieve the existing conversation in the future
-   socket.on('NEW_CHAT', async data => {
+   socket.on('NEW_CHAT', async () => {
       console.log('NEW CHAT', socket.id)
       const newChatId = uuid()
       socket.join(newChatId)
