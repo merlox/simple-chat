@@ -374,3 +374,34 @@ When someone connects, they emit a separate event from the usual connection and 
 Both NEW_CHAT and EXISTING_CHAT are used to update this array.
 
 When a disconnect even is detected, we find and remove that element from the list of active chatters.
+
+## Implementing the chat on your website
+To add this chat on your website simply follow these steps:
+
+1. The page that will contain the chat must add this iframe:
+<iframe src="http://petplat.com" class="real-time-chat"></iframe>
+
+Where the `src` can be petplat.com for our servers or you can deploy the chat to your own server and use something like http://localhost:8002 which will work with your local instance of react-chat.
+
+2. In the same container website add a script file that contains the following:
+
+```js
+let isChatCollapsed = true
+// When the user clicks on expand or collapse the chat
+window.addEventListener('message', e => {
+    if (e.data == 'toggle-collapse') {
+        // Expand iframe
+        if (isChatCollapsed) {
+            document.querySelector('.real-time-chat').style.height = '451px'
+        } else {
+            setTimeout(() => {
+                document.querySelector('.real-time-chat').style.height = '100px'
+            }, 5e2)
+        }
+        isChatCollapsed = !isChatCollapsed
+    }
+})
+```
+Where we simply listen to toggle events to expand or contract the size of the iframe. This is required so that the chat is shown properly otherwise it would be cut off or the elements below the chat would be unclickable.
+
+That's it! Enjoy it and remember to use the `/admin <code>` trick to be the admin and connect to existing conversations.
