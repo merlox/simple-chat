@@ -15,6 +15,7 @@ body{
 .messages-container ul > li{
     padding: 15px;
     margin-bottom: 4px;
+    word-wrap: break-word;
 }
 .message{
     background-color: lightgreen;
